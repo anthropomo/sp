@@ -1,4 +1,6 @@
 shortpath/bin/
 shortpath/.cache
-shortpath/.project/
+shortpath/.project
+shortpath/.classpath
+shortpath/.settings
 /bin/
