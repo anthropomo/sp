@@ -1,3 +1,6 @@
+/*
+ * This helper class is used in Version 1 of the shortest path algorithm in ShortPath.scala.
+ */
 package main.scala
 
 import scala.collection.immutable.Set
