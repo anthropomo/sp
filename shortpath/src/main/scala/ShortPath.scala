@@ -28,7 +28,6 @@ import scala.util.control.Breaks
 
 object ShortPath {
   def main(args: Array[String]){
-
     val locations = List(
       Map("startLocation" -> "Kruthika's abode", "endLocation" -> "Mark's crib", "distance" -> 9),
       Map("startLocation" -> "Kruthika's abode", "endLocation" -> "Greg's casa", "distance" -> 4),
@@ -60,10 +59,14 @@ object ShortPath {
   }
   
   /*
-   * Encapsulates the functions here to deliver the specified output
+   * Accepts the input in the specified format and outputs likewise
    */
   def wrapper(locations: List[Map[String,Any]], start: String, end: String): Map[String,Any] = {
     return formatOutput(shortestPath(dijkstraFunc(locations, start, end), start, end))
+  }
+   
+  def listToGraph(list: List[Map[String,Any]]): Graph = {
+    return Graph.graphFromList(list)
   }
   
   def formatOutput(distPath: Tuple2[Int,Buffer[String]]): Map[String,Any] = {
@@ -157,11 +160,6 @@ object ShortPath {
       case nsee: NoSuchElementException => p = Buffer[String]()
     }
     return (dist, p)
-  }
-  
-  
-  def listToGraph(list: List[Map[String,Any]]): Graph = {
-    return Graph.graphFromList(list)
   }
  
   /*
