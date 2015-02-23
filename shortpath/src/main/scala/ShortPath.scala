@@ -1,3 +1,23 @@
+/*
+ * This is the main entry point.
+ * 
+ * Two versions of the algorithm are presented below.
+ * Version 1 was my first attempt and is preserved here to demonstrate my thought
+ * process and refactoring. Normally, you would only see it in a git diff.
+ * Version 2 is the "final" version. It takes advantage of Functional aspects 
+ * of Scala I tried out in the course of the challenge.
+ *
+ * Running this as will print 
+ * Map(distance -> 31, path -> Kruthika's abode => Brian's apartment => Wesley's condo => Bryce's den => Craig's haunt)
+ * to the console
+ * 
+ * To test other inputs use
+ * wrapper(locations: List[Map[String,Any]], start: String, end: String): Map[String,Any]
+ * 
+ * Note, in scenarios with no path, the following output is expected:
+ * Map(distance -> -1, path -> )
+ */
+ 
 package main.scala
 import scala.collection.mutable.Map
 import scala.collection.mutable.PriorityQueue
@@ -36,9 +56,16 @@ object ShortPath {
     )
 
     var (start, end) = ("Kruthika's abode", "Craig's haunt")
-    println(formatOutput(sp(dijkstraFunc(locations, start, end), start, end)))
+    println(formatOutput(shortestPath(dijkstraFunc(locations, start, end), start, end)))
   }
-
+  
+  /*
+   * Encapsulates the functions here to deliver the specified output
+   */
+  def wrapper(locations: List[Map[String,Any]], start: String, end: String): Map[String,Any] = {
+    return formatOutput(shortestPath(dijkstraFunc(locations, start, end), start, end))
+  }
+  
   def formatOutput(distPath: Tuple2[Int,Buffer[String]]): Map[String,Any] = {
     // Create map with the requested format
     var (distance, path) = distPath
@@ -48,6 +75,11 @@ object ShortPath {
     return output
   }
   
+  /*
+   * Version 2
+   * Implementation of the algorithm using Functional Programming constructs
+   * This version is marginally faster at this scale (see PathSpeed in test)
+   */
   def dijkstraFunc(locations: List[Map[String,Any]], start: String, end: String):
         Tuple2[Map[String,Int],Map[String,String]] = {
     var distances : Map[String, Int] = new HashMap()
@@ -56,59 +88,63 @@ object ShortPath {
     var locs = locations
     // Get the set of unique nodes
     var unvisited: Set[String] = (Set(locations.map({x => x("startLocation").toString()}): _*)
-                                ++ Set(locations.map({x => x("endLocation").toString()}): _*))                       
+                                ++ Set(locations.map({x => x("endLocation").toString()}): _*))
+    // Map our data structure into something more iterable
+    var neighborLists: Map[String, Buffer[Tuple2[String, Int]]] = 
+          Map() ++ (for(x <- unvisited) yield (x, Buffer[Tuple2[String, Int]]()))
+    for (x <- locations){
+      val dist: Any = x("distance")
+      val distance = (dist match{
+          case x:Int => x
+          case _ => 0
+      })
+      neighborLists(x("startLocation").toString()).append((x("endLocation").toString(), distance))
+      neighborLists(x("endLocation").toString()).append((x("startLocation").toString(), distance))
+    }
     var current: String = start
     distances(current) = 0
     
     while(unvisited.size > 0){
-      // Get the list of edges between current and unvisited neighbors 
-      var neighbors = locs.filter(x => ( x("startLocation") == current
-                                            && unvisited.contains(x("endLocation").toString()) )
-                                        || ( x("endLocation") == current
-                                            && unvisited.contains(x("startLocation").toString())) )
+    // Get the list of neighbors of current that have not been visited
+      var neighbors = neighborLists(current).filter({case (k, _) => unvisited.contains(k)})
       for (neighbor <- neighbors){
-        // get the string representation of neighbor in either position
-        var n: String = if (neighbor("startLocation") == current)
-                            neighbor("endLocation").toString()
-                        else neighbor("startLocation").toString()
-        // use scala's kludgy type casting replacement to get an Int
-        val d: Any = neighbor("distance")
-        val distance = (d match{
-          case x:Int => x
-          case _ => 0
-        })
+        var (name, distance) = neighbor
         var new_dist = distance + distances(current)
-        // determine whether new distance to neighbor is shorter than previous minimum, if any
-        if(!distances.contains(n) || new_dist < distances(n)){
-          distances(n) = new_dist
-          predecessors(n) = current 
+    // Determine whether new distance to neighbor is shorter than previous minimum, if any
+        if(!distances.contains(name) || new_dist < distances(name)){
+          distances(name) = new_dist
+          predecessors(name) = current 
         }
-        // remove the edge -- we won't use it again
-        locs = locs.filterNot(x => x == neighbor)
       }
       unvisited.remove(current)
       var relevantUnvisited = distances.filterKeys{ unvisited }
-      // return if we have no relevant unvisited nodes or at our destination
-      // this catches no-path edge cases
-      if (relevantUnvisited.size == 0 || current == end){
+    // Return if we have no relevant unvisited nodes
+    // this catches no-path edge cases
+      if (relevantUnvisited.size == 0){
         return (distances, predecessors)
       }
-      // Get the key corresponding to the shortest path
-      current = relevantUnvisited.minBy(_._2)._1 
+    // Get the key corresponding to the current shortest path
+      current = relevantUnvisited.minBy(_._2)._1
+    // Return if we're at our destination
+      if (current == end){
+        return (distances, predecessors)
+      }
     }
     // should only ever reach here if we don't have a path
     return (distances, predecessors)
   }
     
-  def sp(distPath: Tuple2[Map[String,Int],Map[String,String]], start: String, end: String): Tuple2[Int,Buffer[String]] = {
+  def shortestPath(distPath: Tuple2[Map[String,Int],Map[String,String]], start: String, end: String): Tuple2[Int,Buffer[String]] = {
     var (distances, paths) = distPath
     var dist = -1
+    // Catch edge cases with no path and return -1
     try{
       dist = distances(end)
     } catch {
       case nsee: NoSuchElementException =>
     }
     var p : Buffer[String] = Buffer[String]()
+    // Build the path from the end node back
     try{
       p.prepend(end)
       var e = end
@@ -117,12 +153,20 @@ object ShortPath {
         p.prepend(e)
       }
     } catch {
-      case nsee: NoSuchElementException =>
+    // Avoid returning a partial path if there is no path
+      case nsee: NoSuchElementException => p = Buffer[String]()
     }
     return (dist, p)
   }
+  
+  
+  def listToGraph(list: List[Map[String,Any]]): Graph = {
+    return Graph.graphFromList(list)
+  }
  
   /*
+   * Version 1
+   * Imperative/OO version. Based heavily on Wikipedia pseudocode and text.
    * All comments in this function from here:
    * http://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#Algorithm
    */
@@ -139,46 +183,42 @@ object ShortPath {
     // Assign to every node a tentative distance value: set it to zero for our initial node
     // and to infinity for all other nodes.
     distances(current) = 0
-
-    var loop = new Breaks()
-    loop.breakable{
-      while (unvisited.size > 0){
-        // For the current node, consider all of its unvisited neighbors... 
-        for (neighbor <- graph.edges(current)){
-          // ...calculate their tentative distances.
-          var new_dist = graph.distances((current, neighbor)) + distances(current)
-          // Compare the newly calculated tentative distance to the current 
-          // assigned value and assign the smaller one.
-          if (!distances.contains(neighbor) || new_dist < distances(neighbor)){
-            distances(neighbor) = new_dist
-            predecessors(neighbor) = current 
+    while (unvisited.size > 0){
+    // For the current node, consider all of its unvisited neighbors... 
+      for (neighbor <- graph.edges(current)){
+    // ...calculate their tentative distances.
+        var new_dist = graph.distances((current, neighbor)) + distances(current)
+    // Compare the newly calculated tentative distance to the current 
+    // assigned value and assign the smaller one.
+        if (!distances.contains(neighbor) || new_dist < distances(neighbor)){
+          distances(neighbor) = new_dist
+          predecessors(neighbor) = current 
+        }
+      } 
+    // When we are done considering all of the neighbors of the current node, mark the current 
+    // node as visited and remove it from the unvisited set. A visited node will never be 
+    // checked again.
+      unvisited.remove(current)
+    // If the destination node has been marked visited (when planning a route between two 
+    // specific nodes) then stop
+      current = null
+    // Select the unvisited node that is marked with the smallest tentative distance, and set
+    // it as the new "current node"
+      for (node <- unvisited){
+        if (distances.contains(node)){
+          if (current == null){
+            current = node
           }
-        } 
-        // When we are done considering all of the neighbors of the current node, mark the current 
-        // node as visited and remove it from the unvisited set. A visited node will never be 
-        // checked again.
-        unvisited.remove(current)
-        // If the destination node has been marked visited (when planning a route between two 
-        // specific nodes) then stop
-        current = null
-        // Select the unvisited node that is marked with the smallest tentative distance, and set
-        // it as the new "current node"
-        for (node <- unvisited){
-          if (distances.contains(node)){
-            if (current == null){
-              current = node
-            }
-            else if(distances(node) < distances(current)){
-              current = node
-            }
+          else if(distances(node) < distances(current)){
+            current = node
           }
         }
-        // if the smallest tentative distance among the nodes in the unvisited 
-        // set is infinity (when planning a complete traversal; occurs when there is no connection 
-        // between the initial node and remaining unvisited nodes), then stop.
-        if (current == null || current == end){
-          loop.break()
-        }
+      }
+    // if the smallest tentative distance among the nodes in the unvisited 
+    // set is infinity (when planning a complete traversal; occurs when there is no connection 
+    // between the initial node and remaining unvisited nodes), then stop.
+      if (current == null || current == end){
+        return (distances, predecessors)
       }
     }
     return (distances, predecessors)

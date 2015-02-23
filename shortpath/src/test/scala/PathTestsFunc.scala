@@ -1,13 +1,54 @@
+/*
+ * Test using the "Functional" algorithm implementation.
+ */
 package test.scala
 import org.junit.Assert
 import junit.framework.TestCase
-import main.scala._
+import main.scala.ShortPath
 import scala.collection.mutable.Map
+import scala.collection.mutable.Buffer
 
 class PathTests extends TestCase{
   
   /*
-   * We fail gracefully when there is no path
+   * We produce the specified output
+   */
+  def testAssignment() {
+    val locations = List(
+      Map("startLocation" -> "Kruthika's abode", "endLocation" -> "Mark's crib", "distance" -> 9),
+      Map("startLocation" -> "Kruthika's abode", "endLocation" -> "Greg's casa", "distance" -> 4),
+      Map("startLocation" -> "Kruthika's abode", "endLocation" -> "Matt's pad", "distance" -> 18),
+      Map("startLocation" -> "Kruthika's abode", "endLocation" -> "Brian's apartment", "distance" -> 8),
+      Map("startLocation" -> "Brian's apartment", "endLocation" -> "Wesley's condo", "distance" -> 7),
+      Map("startLocation" -> "Brian's apartment", "endLocation" -> "Cam's dwelling", "distance" -> 17),
+      Map("startLocation" -> "Greg's casa", "endLocation" -> "Cam's dwelling", "distance" -> 13),
+      Map("startLocation" -> "Greg's casa", "endLocation" -> "Mike's digs", "distance" -> 19),
+      Map("startLocation" -> "Greg's casa", "endLocation" -> "Matt's pad", "distance" -> 14),
+      Map("startLocation" -> "Wesley's condo", "endLocation" -> "Kirk's farm", "distance" -> 10),
+      Map("startLocation" -> "Wesley's condo", "endLocation" -> "Nathan's flat", "distance" -> 11),
+      Map("startLocation" -> "Wesley's condo", "endLocation" -> "Bryce's den", "distance" -> 6),
+      Map("startLocation" -> "Matt's pad", "endLocation" -> "Mark's crib", "distance" -> 19),
+      Map("startLocation" -> "Matt's pad", "endLocation" -> "Nathan's flat", "distance" -> 15),
+      Map("startLocation" -> "Matt's pad", "endLocation" -> "Craig's haunt", "distance" -> 14),
+      Map("startLocation" -> "Mark's crib", "endLocation" -> "Kirk's farm", "distance" -> 9),
+      Map("startLocation" -> "Mark's crib", "endLocation" -> "Nathan's flat", "distance" -> 12),
+      Map("startLocation" -> "Bryce's den", "endLocation" -> "Craig's haunt", "distance" -> 10),
+      Map("startLocation" -> "Bryce's den", "endLocation" -> "Mike's digs", "distance" -> 9),
+      Map("startLocation" -> "Mike's digs", "endLocation" -> "Cam's dwelling", "distance" -> 20),
+      Map("startLocation" -> "Mike's digs", "endLocation" -> "Nathan's flat", "distance" -> 12),
+      Map("startLocation" -> "Cam's dwelling", "endLocation" -> "Craig's haunt", "distance" -> 18),
+      Map("startLocation" -> "Nathan's flat", "endLocation" -> "Kirk's farm", "distance" -> 3)
+    )
+
+    var (start, end) = ("Kruthika's abode", "Craig's haunt")
+    Assert.assertEquals(
+        Map("distance" -> 31, "path" -> "Kruthika's abode => Brian's apartment => Wesley's condo => Bryce's den => Craig's haunt"),
+        ShortPath.formatOutput(ShortPath.shortestPath(ShortPath.dijkstraFunc(locations, start, end), start, end))
+    )
+  }
+  
+  /*
+   * We fail in a defined way when there is no path
    */
   def testNoPath() {
     val locations = List(
@@ -18,8 +59,10 @@ class PathTests extends TestCase{
     )
     
     var (start, end) = ("Kruthika's abode", "Craig's haunt")
-    var (distance, path) = ShortPath.sp(ShortPath.dijkstraFunc(locations, start, end), start, end)
+    var (distance, path) = ShortPath.shortestPath(ShortPath.dijkstraFunc(locations, start, end), start, end)
     Assert.assertTrue(distance == -1)
+    var (d2, p2) = ShortPath.shortestPath(ShortPath.dijkstra(ShortPath.listToGraph(locations), start, end), start, end)
+    Assert.assertTrue(d2 == -1)
   }
   
   /*
@@ -54,12 +97,14 @@ class PathTests extends TestCase{
     )
 
     var (start, end) = ("Kruthika's abode", "Craig's haunt")
-    var (distance, path) = ShortPath.sp(ShortPath.dijkstraFunc(locations, start, end), start, end)
+    var (distance, path) = ShortPath.shortestPath(ShortPath.dijkstraFunc(locations, start, end), start, end)
     Assert.assertTrue(path.size == 7)
+    var (d2, p2) = ShortPath.shortestPath(ShortPath.dijkstra(ShortPath.listToGraph(locations), start, end), start, end)
+    Assert.assertTrue(p2.size == 7)
   }
   
   /*
-   * Distances in millions of miles. Not testing anything meaningful here. 
+   * Distances in millions of miles. No specific edge case here. 
    */
   def testPlanets(){
     val locations = List(
@@ -88,8 +133,30 @@ class PathTests extends TestCase{
     )
     
     var (start, end) = ("Mercury", "Neptune")
-    var (distance, path) = ShortPath.sp(ShortPath.dijkstraFunc(locations, start, end), start, end)
+    var (distance, path) = ShortPath.shortestPath(ShortPath.dijkstraFunc(locations, start, end), start, end)
     Assert.assertTrue(path.size == 3)
+  }
+  
+  /*
+   * Distances in miles. Just another example.
+   */
+  def testCities(){
+    val locations = List(
+      Map("startLocation" -> "NYC", "endLocation" -> "Detroit", "distance" -> 615),
+      Map("startLocation" -> "NYC", "endLocation" -> "Toronto", "distance" -> 491),
+      Map("startLocation" -> "NYC", "endLocation" -> "Pittsburgh", "distance" -> 369),
+      Map("startLocation" -> "Pittsburgh", "endLocation" -> "Detroit", "distance" -> 286),
+      Map("startLocation" -> "Pittsburgh", "endLocation" -> "Indianapolis", "distance" -> 360),
+      Map("startLocation" -> "Indianapolis", "endLocation" -> "Chicago", "distance" -> 183),
+      Map("startLocation" -> "Detroit", "endLocation" -> "Chicago", "distance" -> 283),
+      Map("startLocation" -> "Detroit", "endLocation" -> "Sault Ste Marie", "distance" -> 346),
+      Map("startLocation" -> "Sault Ste Marie", "endLocation" -> "Toronto", "distance" -> 432),
+      Map("startLocation" -> "Sault Ste Marie", "endLocation" -> "Milwaukee", "distance" -> 399),
+      Map("startLocation" -> "Chicago", "endLocation" -> "Milwaukee", "distance" -> 92)
+    )
+    var (start, end) = ("NYC", "Milwaukee")
+    var (distance, path) = ShortPath.shortestPath(ShortPath.dijkstraFunc(locations, start, end), start, end)
+    Assert.assertEquals(path, Buffer("NYC", "Detroit", "Chicago", "Milwaukee"))
   }
 
   
