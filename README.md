@@ -1,4 +1,6 @@
 # sp
 ##Shortest Path Exercize
 
-Main entry point is /src/main/scala/ShortPath.scala
+Main entry point:
+
+shortpath/src/main/scala/ShortPath.scala
