@@ -35,17 +35,93 @@ object ShortPath {
       Map("startLocation" -> "Nathan's flat", "endLocation" -> "Kirk's farm", "distance" -> 3)
     )
 
-    val graph = Graph.graphFromList(locations)
-    var start = "Kruthika's abode"
-    var end = "Craig's haunt"
-    var (distance, path) = shortestPath(graph, start, end)
- 
+    var (start, end) = ("Kruthika's abode", "Craig's haunt")
+    println(formatOutput(sp(dijkstraFunc(locations, start, end), start, end)))
+  }
+
+  def formatOutput(distPath: Tuple2[Int,Buffer[String]]): Map[String,Any] = {
+    // Create map with the requested format
+    var (distance, path) = distPath
     val output = new HashMap[String, Any]
     output("distance") = distance
     output("path") = path.mkString(" => ")
-    println(output)
+    return output
   }
-
+  
+  def dijkstraFunc(locations: List[Map[String,Any]], start: String, end: String):
+        Tuple2[Map[String,Int],Map[String,String]] = {
+    var distances : Map[String, Int] = new HashMap()
+    var predecessors : Map[String, String] = new HashMap()
+    
+    var locs = locations
+    // Get the set of unique nodes
+    var unvisited: Set[String] = (Set(locations.map({x => x("startLocation").toString()}): _*)
+                                ++ Set(locations.map({x => x("endLocation").toString()}): _*))                       
+    var current: String = start
+    distances(current) = 0
+    
+    while(unvisited.size > 0){
+      // Get the list of edges between current and unvisited neighbors 
+      var neighbors = locs.filter(x => ( x("startLocation") == current
+                                            && unvisited.contains(x("endLocation").toString()) )
+                                        || ( x("endLocation") == current
+                                            && unvisited.contains(x("startLocation").toString())) )
+      for (neighbor <- neighbors){
+        // get the string representation of neighbor in either position
+        var n: String = if (neighbor("startLocation") == current)
+                            neighbor("endLocation").toString()
+                        else neighbor("startLocation").toString()
+        // use scala's kludgy type casting replacement to get an Int
+        val d: Any = neighbor("distance")
+        val distance = (d match{
+          case x:Int => x
+          case _ => 0
+        })
+        var new_dist = distance + distances(current)
+        // determine whether new distance to neighbor is shorter than previous minimum, if any
+        if(!distances.contains(n) || new_dist < distances(n)){
+          distances(n) = new_dist
+          predecessors(n) = current 
+        }
+        // remove the edge -- we won't use it again
+        locs = locs.filterNot(x => x == neighbor)
+      }
+      unvisited.remove(current)
+      var relevantUnvisited = distances.filterKeys{ unvisited }
+      // return if we have no relevant unvisited nodes or at our destination
+      // this catches no-path edge cases
+      if (relevantUnvisited.size == 0 || current == end){
+        return (distances, predecessors)
+      }
+      // Get the key corresponding to the shortest path
+      current = relevantUnvisited.minBy(_._2)._1 
+    }
+    // should only ever reach here if we don't have a path
+    return (distances, predecessors)
+  }
+    
+  def sp(distPath: Tuple2[Map[String,Int],Map[String,String]], start: String, end: String): Tuple2[Int,Buffer[String]] = {
+    var (distances, paths) = distPath
+    var dist = -1
+    try{
+      dist = distances(end)
+    } catch {
+      case nsee: NoSuchElementException =>
+    }
+    var p : Buffer[String] = Buffer[String]()
+    try{
+      p.prepend(end)
+      var e = end
+      while(e != start){
+        e = paths(e)
+        p.prepend(e)
+      }
+    } catch {
+      case nsee: NoSuchElementException =>
+    }
+    return (dist, p)
+  }
+ 
   /*
    * All comments in this function from here:
    * http://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#Algorithm
@@ -68,7 +144,6 @@ object ShortPath {
     loop.breakable{
       while (unvisited.size > 0){
         // For the current node, consider all of its unvisited neighbors... 
-        println(current)
         for (neighbor <- graph.edges(current)){
           // ...calculate their tentative distances.
           var new_dist = graph.distances((current, neighbor)) + distances(current)
@@ -107,31 +182,5 @@ object ShortPath {
       }
     }
     return (distances, predecessors)
-  }
-  
-  def shortestPath(graph: Graph, start: String, end: String): Tuple2[Int,Buffer[String]] = {
-    var (distances, paths) = dijkstra(graph, start, end)
-    // get the distance to the end point
-    var dist = -1
-    println(distances)
-    try{
-      dist = distances(end)
-    } catch {
-      case nsee: NoSuchElementException =>
-    }
-    var p : Buffer[String] = Buffer[String]()
-    try{
-      p.prepend(end)
-      var e = end
-      // build the list of nodes on our path from end to beginning
-      // probably need a test to see what happens here when there is no path
-      while(e != start){
-        e = paths(e)
-        p.prepend(e)
-      }
-    } catch {
-      case nsee: NoSuchElementException =>
-    }
-    return (dist, p)
   }
 }

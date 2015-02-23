@@ -10,14 +10,15 @@ class PathTests extends TestCase{
    * We fail gracefully when there is no path
    */
   def testNoPath() {
-    val nolist = List(
+    val locations = List(
       Map("startLocation" -> "Kruthika's abode", "endLocation" -> "Mark's crib", "distance" -> 9),
       Map("startLocation" -> "Mike's digs", "endLocation" -> "Nathan's flat", "distance" -> 12),
       Map("startLocation" -> "Cam's dwelling", "endLocation" -> "Craig's haunt", "distance" -> 18),
       Map("startLocation" -> "Nathan's flat", "endLocation" -> "Kirk's farm", "distance" -> 3)
-    ) 
-    var nopath : Graph = Graph.graphFromList(nolist)
-    var (distance, path) = ShortPath.shortestPath(nopath, "Kruthika's abode", "Craig's haunt")
+    )
+    
+    var (start, end) = ("Kruthika's abode", "Craig's haunt")
+    var (distance, path) = ShortPath.sp(ShortPath.dijkstraFunc(locations, start, end), start, end)
     Assert.assertTrue(distance == -1)
   }
   
@@ -51,10 +52,9 @@ class PathTests extends TestCase{
       Map("startLocation" -> "Cam's dwelling", "endLocation" -> "Craig's haunt", "distance" -> 1), // 6/7
       Map("startLocation" -> "Nathan's flat", "endLocation" -> "Kirk's farm", "distance" -> 1)  // 3
     )
-    var graph : Graph = Graph.graphFromList(locations)
-    var (distance, path) = ShortPath.shortestPath(graph, "Kruthika's abode", "Craig's haunt")
-    println(distance)
-    println(path)
+
+    var (start, end) = ("Kruthika's abode", "Craig's haunt")
+    var (distance, path) = ShortPath.sp(ShortPath.dijkstraFunc(locations, start, end), start, end)
     Assert.assertTrue(path.size == 7)
   }
   
@@ -86,10 +86,9 @@ class PathTests extends TestCase{
       Map("startLocation" -> "Saturn", "endLocation" -> "Neptune", "distance" -> 1907),
       Map("startLocation" -> "Uranus", "endLocation" -> "Neptune", "distance" -> 1015)
     )
-    var graph : Graph = Graph.graphFromList(locations)
-    var (distance, path) = ShortPath.shortestPath(graph, "Mercury", "Neptune")
-    println(distance)
-    println(path)
+    
+    var (start, end) = ("Mercury", "Neptune")
+    var (distance, path) = ShortPath.sp(ShortPath.dijkstraFunc(locations, start, end), start, end)
     Assert.assertTrue(path.size == 3)
   }
 
