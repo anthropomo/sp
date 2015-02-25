@@ -2,3 +2,7 @@
 shortpath/.cache
 
 *.class
+
+shortpath/target/
+
+shortpath/project/
