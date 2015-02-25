@@ -1,4 +1,3 @@
-# sp
 ##Shortest Path Exercize
 
 ####External Dependencies
