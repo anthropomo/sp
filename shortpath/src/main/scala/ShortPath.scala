@@ -55,7 +55,14 @@ object ShortPath {
     )
 
     var (start, end) = ("Kruthika's abode", "Craig's haunt")
-    println(formatOutput(shortestPath(dijkstraFunc(locations, start, end), start, end)))
+    println("\tFinding the Shortest Path")
+    println("\tInput:")
+    println("\tList(")
+    for(x <- locations) {println("\t\t" + x)}
+    println("\t)")
+    println("\tStart point: " + start)
+    println("\tEnd point: " + end)
+    println("\tResult: " + formatOutput(shortestPath(dijkstraFunc(locations, start, end), start, end)))
   }
   
   /*
