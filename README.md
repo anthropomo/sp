@@ -9,7 +9,7 @@
 
 - Clone repo.
 
-- `cd` to root dir `[...]/sb/shortpath`
+- `cd` to project root `[...]/sb/shortpath`
 
 - [`$ sbt`](http://www.scala-sbt.org)
 
